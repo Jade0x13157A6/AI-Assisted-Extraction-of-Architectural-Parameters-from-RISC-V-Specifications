@@ -1,0 +1,156 @@
+schema_version: "1.0"
+extraction_policy:
+  description: >-
+    Extract implementation-selectable parameters and explicitly fixed
+    architectural constants, while keeping non-parameter requirements separate.
+  evidence_required: true
+  external_knowledge_allowed: false
+
+snippets:
+  - source:
+      document: "RISC-V Privileged Specification"
+      section: "19.3.1"
+      topic: "Cache blocks"
+    parameters:
+      - name: cache_capacity
+        description: "Capacity of a cache."
+        category: implementation_parameter
+        type: integer
+        value: null
+        implementation_specific: true
+        constraints:
+          - "The implementation selects the capacity."
+          - "No numeric value, unit, or range is stated in the excerpt."
+        evidence:
+          - >-
+            The capacity and organization of a cache and the size of a cache
+            block are both implementation-specific
+        confidence: high
+
+      - name: cache_organization
+        description: "Organization of a cache."
+        category: implementation_parameter
+        type: implementation_defined_structure
+        value: null
+        implementation_specific: true
+        constraints:
+          - "The implementation selects the organization."
+          - "No permitted organizations are enumerated in the excerpt."
+        evidence:
+          - >-
+            The capacity and organization of a cache and the size of a cache
+            block are both implementation-specific
+        confidence: high
+
+      - name: cache_block_size
+        description: "Size of the memory range represented by one cache block."
+        category: implementation_parameter
+        type: integer
+        value: null
+        implementation_specific: true
+        constraints:
+          - "The represented range must have a power-of-two size."
+          - "Each represented range must be naturally aligned."
+          - >-
+            For the initial set of CMO extensions, the size shall be uniform
+            throughout the system.
+          - "No numeric size or unit is stated in the excerpt."
+        evidence:
+          - >-
+            The capacity and organization of a cache and the size of a cache
+            block are both implementation-specific
+          - >-
+            a contiguous, naturally aligned power-of-two (or NAPOT) range of
+            memory locations
+          - "the size of a cache block shall be uniform throughout the system"
+        confidence: high
+
+    non_parameter_requirements:
+      - description: >-
+          The execution environment must give software a way to discover cache
+          and cache-block information.
+        evidence: >-
+          the execution environment provides software a means to discover
+          information about the caches and cache blocks
+      - description: >-
+          Any physical address corresponding to the underlying locations can
+          identify a cache block.
+        evidence: >-
+          A cache block is identified by any of the physical addresses
+          corresponding to the underlying memory locations.
+    excluded_candidates:
+      - name: cache_discovery_mechanism
+        reason: >-
+          A discovery mechanism must exist, but its form is not described as a
+          selectable parameter in the excerpt.
+
+  - source:
+      document: "RISC-V Privileged Specification"
+      section: "2.1"
+      topic: "Conventional CSR read/write accessibility encoding"
+    parameters:
+      - name: csr_address_width
+        description: "Width of the CSR address encoding space."
+        category: architectural_constant
+        type: integer
+        value: 12
+        implementation_specific: false
+        constraints:
+          - "The address field is csr[11:0]."
+          - "The encoding space contains at most 4,096 distinct addresses."
+          - "The excerpt does not require all 4,096 CSR addresses to be implemented."
+        evidence:
+          - "a 12-bit encoding space (csr[11:0]) for up to 4,096 CSRs"
+        confidence: high
+
+      - name: csr_read_write_access_field
+        description: "CSR address field encoding whether a CSR is read/write or read-only."
+        category: architectural_constant
+        type: bit_field
+        value:
+          bits: "csr[11:10]"
+          width: 2
+          encoding:
+            "00": read_write
+            "01": read_write
+            "10": read_write
+            "11": read_only
+        implementation_specific: false
+        constraints:
+          - "The field occupies the top two bits of the 12-bit CSR address."
+        evidence:
+          - >-
+            The top two bits (csr[11:10]) indicate whether the register is
+            read/write (00,01, or 10) or read-only (11).
+        confidence: high
+
+      - name: csr_lowest_privilege_field
+        description: "CSR address field encoding the lowest privilege level allowed to access the CSR."
+        category: architectural_constant
+        type: bit_field
+        value:
+          bits: "csr[9:8]"
+          width: 2
+          encoding: null
+        implementation_specific: false
+        constraints:
+          - "The field occupies the next two bits after csr[11:10]."
+          - "The individual privilege-level encodings are not given in this excerpt."
+        evidence:
+          - >-
+            The next two bits (csr[9:8]) encode the lowest privilege level that
+            can access the CSR.
+        confidence: high
+
+    non_parameter_requirements:
+      - description: >-
+          By convention, csr[11:8] encode CSR read/write accessibility according
+          to privilege level.
+        evidence: >-
+          the upper 4 bits of the CSR address (csr[11:8]) are used to encode the
+          read and write accessibility of the CSRs according to privilege level
+    excluded_candidates:
+      - name: implemented_csr_count
+        reason: >-
+          The excerpt states the maximum size of the encoding space but does not
+          state how many CSRs a particular implementation contains.
